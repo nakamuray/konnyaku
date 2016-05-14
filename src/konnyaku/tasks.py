@@ -2,7 +2,7 @@ import lxml.html
 
 from datetime import datetime
 
-from aiohttp import get
+from aiohttp import get, ClientError
 
 from . import exceptions
 from . import models
@@ -12,18 +12,21 @@ async def fetch_page(session, site):
     # TODO: If-Modified-Since: page.ctime
     # TODO: User-Agent
 
-    async with await get(site.url, headers=site.headers) as response:
-        # TODO: don't hardcode response size limit
-        if response.content.total_bytes > 10 * 1024 * 1024:
-            raise exceptions.TaskFailure('content-size too big')
+    try:
+        async with await get(site.url, headers=site.headers) as response:
+            # TODO: don't hardcode response size limit
+            if response.content.total_bytes > 10 * 1024 * 1024:
+                raise exceptions.TaskFailure('content-size too big')
 
-        if response.status != 200:
-            raise exceptions.TaskFailure('http error: {!r}'.format(response))
+            if response.status != 200:
+                raise exceptions.TaskFailure('http error: {!r}'.format(response))
 
-        #body = await response.read()
-        # .text() メソッドを使うと、 chardet で自動で文字コード判定してくれるらしい。
-        # XXX: HTTP header や html header 見て charset 探したほうが良いかも？
-        body = await response.text()
+            #body = await response.read()
+            # .text() メソッドを使うと、 chardet で自動で文字コード判定してくれるらしい。
+            # XXX: HTTP header や html header 見て charset 探したほうが良いかも？
+            body = await response.text()
+    except ClientError as e:
+        raise exceptions.TaskFailure('http error: {!r}'.format(e))
 
     # XXX: encoding 判定
     #body = body.decode('utf-8')
