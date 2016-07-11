@@ -79,7 +79,24 @@ def extract_links(page, css_selector):
             # TODO: warning log
             continue
 
+        set_text_for_imgs(dom)
+
         title = dom.text_content().strip()
         href = dom.attrib['href']
 
         yield (title, href)
+
+
+# XXX: doesn't lxml have the way to do that itself?
+def set_text_for_imgs(dom):
+    '''set text for img tags within the dom
+
+    If img tag has title or alt attribute, use it as a text content.
+    This function modify the dom object.
+    '''
+    for img in dom.cssselect('img'):
+        if not img.text_content().strip():
+            if img.get('title'):
+                img.text = img.get('title')
+            elif img.get('alt'):
+                img.text = img.get('alt')
