@@ -52,7 +52,7 @@ async def check_update(session, site):
     if not new_page:
         return []
 
-    current_links = set((link.title, link.href) for link in site.links)
+    current_links = set(link.href for link in site.links)
     links = list(extract_links(new_page, site.css_selector))
     new_links = []
 
@@ -60,7 +60,7 @@ async def check_update(session, site):
         raise exceptions.TaskFailure('no link found. check your css_selector.')
 
     for title, href in links:
-        if (title, href) not in current_links:
+        if href not in current_links:
             link = models.Link(site=site, title=title, href=href)
             session.add(link)
             new_links.append(link)

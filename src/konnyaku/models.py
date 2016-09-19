@@ -66,6 +66,7 @@ class Link(Base):
     site = relationship('Site', back_populates='links')
 
     title = Column(String)
+    # TODO: site と href で unique 制約付ける
     href = Column(String)
 
     ctime = Column(DateTime, default=datetime.now)
