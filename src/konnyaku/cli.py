@@ -29,7 +29,7 @@ def list(ctx, verbose):
     sites = session.query(models.Site).all()
 
     for site in sites:
-        print_site(site, verbose)
+        _print_site(site, verbose)
 
         if verbose:
             click.echo()
@@ -48,7 +48,7 @@ def show(ctx, site_id):
     if not site:
         raise click.UsageError('no site found')
 
-    print_site(site, verbose=True)
+    _print_site(site, verbose=True)
 
 
 @cli.command()
@@ -65,7 +65,7 @@ def links(ctx, site_id):
         sites = sites.filter_by(id=site_id)
 
     for site in sites:
-        print_links(site, site.links)
+        _print_links(site, site.links)
 
 
 @cli.command()
@@ -146,22 +146,22 @@ def check(ctx, site_id):
     if site_id:
         sites = sites.filter_by(id=site_id)
 
-    tasks = [check_and_print_site_update(session, site) for site in sites]
+    tasks = [_check_and_print_site_update(session, site) for site in sites]
     loop.run_until_complete(asyncio.gather(*tasks))
     session.commit()
 
 
-async def check_and_print_site_update(session, site):
+async def _check_and_print_site_update(session, site):
     try:
         new_links = await tasks.check_update(session, site)
         if new_links:
-            print_links(site, new_links)
+            _print_links(site, new_links)
     except exceptions.TaskFailure as e:
         click.echo('error on {0}: {1}'.format(site.id, site.name), err=True)
         click.echo(e.args[0], err=True)
 
 
-def print_links(site, links):
+def _print_links(site, links):
     click.echo('=' * 78)
     click.echo(site.name)
     click.echo()
@@ -171,7 +171,7 @@ def print_links(site, links):
         click.echo('  {}'.format(link.href))
 
 
-def print_site(site, verbose=False):
+def _print_site(site, verbose=False):
     click.echo('{0}: {1}'.format(site.id, site.name))
 
     if verbose:
