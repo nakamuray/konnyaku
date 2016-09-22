@@ -179,5 +179,27 @@ def _print_site(site, verbose=False):
         click.echo('css_selector: {0}'.format(site.css_selector))
         click.echo('headers: {0}'.format(site.headers_json))
 
+
+@cli.command()
+@click.argument('name')
+@click.argument('url')
+@click.argument('css-selector')
+@click.option('--header', type=(str, str), multiple=True,
+              help='optional headers')
+@click.pass_context
+def oneshot(ctx, name, url, css_selector, header):
+    '''add & check but not save
+    '''
+    session = ctx.obj['session']
+
+    site = models.Site(
+        name=name, url=url, css_selector=css_selector, headers=dict(header))
+    session.add(site)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(_check_and_print_site_update(session, site))
+
+    session.rollback()
+
 if __name__ == '__main__':
     cli()
