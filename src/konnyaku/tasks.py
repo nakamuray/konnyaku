@@ -82,7 +82,10 @@ def extract_links(page, css_selector):
         set_text_for_imgs(dom)
 
         title = dom.text_content().strip()
-        href = dom.attrib['href']
+        href = dom.attrib.get('href')
+
+        if not href:
+            continue
 
         yield (title, href)
 
