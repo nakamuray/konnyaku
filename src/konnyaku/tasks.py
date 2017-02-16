@@ -1,3 +1,5 @@
+import logging
+
 import lxml.html
 
 from datetime import datetime
@@ -7,18 +9,24 @@ from aiohttp import get, ClientError
 from . import exceptions
 from . import models
 
+logger = logging.getLogger(__name__)
+
 
 async def fetch_page(session, site):
     # TODO: If-Modified-Since: page.ctime
     # TODO: User-Agent
 
     try:
+        logger.debug('start fetching site: %s', site)
         async with await get(site.url, headers=site.headers) as response:
             # TODO: don't hardcode response size limit
             if response.content.total_bytes > 10 * 1024 * 1024:
+                logger.debug('content-size too big: %d',
+                             response.content.total_bytes)
                 raise exceptions.TaskFailure('content-size too big')
 
             if response.status != 200:
+                logger.debug('http error: %s', response)
                 raise exceptions.TaskFailure('http error: {!r}'.format(response))
 
             #body = await response.read()
@@ -26,7 +34,10 @@ async def fetch_page(session, site):
             # XXX: HTTP header や html header 見て charset 探したほうが良いかも？
             body = await response.text()
     except ClientError as e:
+        logger.debug('http error: %s', e)
         raise exceptions.TaskFailure('http error: {!r}'.format(e))
+
+    logger.debug('fetched site: %s', site)
 
     # XXX: encoding 判定
     #body = body.decode('utf-8')
@@ -50,6 +61,7 @@ async def check_update(session, site):
     new_page = await fetch_page(session, site)
 
     if not new_page:
+        logger.debug('no new page found for site: %s', site)
         return []
 
     current_links = set(link.href for link in site.links)
@@ -57,6 +69,7 @@ async def check_update(session, site):
     new_links = []
 
     if not links:
+        logger.debug('no link found for site: %s', site)
         raise exceptions.TaskFailure('no link found. check your css_selector.')
 
     for title, href in links:

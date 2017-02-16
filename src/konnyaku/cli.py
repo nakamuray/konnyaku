@@ -1,4 +1,6 @@
 import asyncio
+import logging
+import sys
 
 import click
 
@@ -9,11 +11,22 @@ from . import tasks
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
+@click.option('--db-debug/--no-db-debug', default=False)
 @click.pass_context
-def cli(ctx, debug):
+def cli(ctx, debug, db_debug):
+    if debug:
+        # TODO: apply these settings for konnyaku.* logger only
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelno)s %(name)s:'
+            ' %(module)s:%(lineno)d:%(funcName)s %(message)s'
+        ))
+        logging.root.addHandler(handler)
+        logging.root.setLevel(logging.DEBUG)
+
     url = models.get_default_url()
 
-    engine = models.make_engine(url, echo=debug)
+    engine = models.make_engine(url, echo=db_debug)
     Session = models.make_session(engine)
     ctx.obj = {'session': Session()}
 
