@@ -171,18 +171,25 @@ def check(ctx, site_id, concurrency, wait):
     tasks = [throttled_check_and_print_site_update(session, site)
              for site in sites]
 
-    pending = tasks
-    num_tasks = len(tasks)
-    num_done = 0
+    if sys.stderr.isatty():
+        # run tasks while showing progress message
+        pending = tasks
+        num_tasks = len(tasks)
+        num_done = 0
 
-    while pending:
+        while pending:
+            click.echo('checking ... [{}/{}]\r'.format(num_done, num_tasks),
+                       nl=False, err=True)
+            done, pending = loop.run_until_complete(
+                asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED))
+            num_done += len(done)
+
         click.echo('checking ... [{}/{}]\r'.format(num_done, num_tasks),
-                   nl=False, err=True)
-        done, pending = loop.run_until_complete(
-            asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED))
-        num_done += len(done)
+                   err=True)
 
-    click.echo('checking ... [{}/{}]\r'.format(num_done, num_tasks), err=True)
+    else:
+        # just run tasks
+        loop.run_until_complete(asyncio.wait(tasks))
 
     session.commit()
 
