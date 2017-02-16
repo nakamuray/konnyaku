@@ -1,4 +1,5 @@
 import logging
+import urllib.parse
 
 import lxml.html
 
@@ -8,10 +9,18 @@ from aiohttp import get, ClientError
 
 from . import exceptions
 from . import models
+from .concurrentutils import throttling_per
 
 logger = logging.getLogger(__name__)
 
 
+def _per_domain(_, site):
+    return urllib.parse.urlparse(site.url).hostname
+
+
+# limit concurrency per domain to 2,
+# sleep 1 second within each concurrent access
+@throttling_per(1, 2, _per_domain)
 async def fetch_page(session, site):
     # TODO: If-Modified-Since: page.ctime
     # TODO: User-Agent
