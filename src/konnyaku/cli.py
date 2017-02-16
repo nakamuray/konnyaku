@@ -177,12 +177,12 @@ def check(ctx, site_id, concurrency, wait):
 
     while pending:
         click.echo('checking ... [{}/{}]\r'.format(num_done, num_tasks),
-                   nl=False)
+                   nl=False, err=True)
         done, pending = loop.run_until_complete(
             asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED))
         num_done += len(done)
 
-    click.echo('checking ... [{}/{}]\r'.format(num_done, num_tasks))
+    click.echo('checking ... [{}/{}]\r'.format(num_done, num_tasks), err=True)
 
     session.commit()
 
