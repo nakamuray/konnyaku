@@ -1,12 +1,14 @@
 import asyncio
 import logging
 import sys
+import urllib.parse
 
 import click
 
 from . import exceptions
 from . import models
 from . import tasks
+from .concurrentutils import throttling_per
 
 
 @click.group()
@@ -146,8 +148,12 @@ def remove(ctx, site_id):
 
 @cli.command()
 @click.option('--site-id', help='site name to check')
+@click.option('--concurrency', type=int, default=2,
+              help='concurrency for fetching site')
+@click.option('--wait', type=int, default=1,
+              help='wait between fetching site within each concurrency')
 @click.pass_context
-def check(ctx, site_id):
+def check(ctx, site_id, concurrency, wait):
     '''check site updates
     '''
     session = ctx.obj['session']
@@ -159,9 +165,17 @@ def check(ctx, site_id):
     if site_id:
         sites = sites.filter_by(id=site_id)
 
-    tasks = [_check_and_print_site_update(session, site) for site in sites]
+    throttled_check_and_print_site_update = \
+        throttling_per(wait, concurrency, _per_domain)(
+            _check_and_print_site_update)
+    tasks = [throttled_check_and_print_site_update(session, site)
+             for site in sites]
     loop.run_until_complete(asyncio.gather(*tasks))
     session.commit()
+
+
+def _per_domain(_, site):
+    return urllib.parse.urlparse(site.url).hostname
 
 
 async def _check_and_print_site_update(session, site):
