@@ -1,10 +1,9 @@
 import logging
 
+import aiohttp
 import lxml.html
 
 from datetime import datetime
-
-from aiohttp import get, ClientError
 
 from . import exceptions
 from . import models
@@ -18,22 +17,24 @@ async def fetch_page(session, site):
 
     try:
         logger.debug('start fetching site: %s', site)
-        async with await get(site.url, headers=site.headers) as response:
-            # TODO: don't hardcode response size limit
-            if response.content.total_bytes > 10 * 1024 * 1024:
-                logger.debug('content-size too big: %d',
-                             response.content.total_bytes)
-                raise exceptions.TaskFailure('content-size too big')
+        # TODO: create http_session per application
+        async with aiohttp.ClientSession() as http_session:
+            async with await http_session.get(site.url, headers=site.headers) as response:
+                # TODO: don't hardcode response size limit
+                if response.content.total_bytes > 10 * 1024 * 1024:
+                    logger.debug('content-size too big: %d',
+                                 response.content.total_bytes)
+                    raise exceptions.TaskFailure('content-size too big')
 
-            if response.status != 200:
-                logger.debug('http error: %s', response)
-                raise exceptions.TaskFailure('http error: {!r}'.format(response))
+                if response.status != 200:
+                    logger.debug('http error: %s', response)
+                    raise exceptions.TaskFailure('http error: {!r}'.format(response))
 
-            #body = await response.read()
-            # .text() メソッドを使うと、 chardet で自動で文字コード判定してくれるらしい。
-            # XXX: HTTP header や html header 見て charset 探したほうが良いかも？
-            body = await response.text()
-    except ClientError as e:
+                #body = await response.read()
+                # .text() メソッドを使うと、 chardet で自動で文字コード判定してくれるらしい。
+                # XXX: HTTP header や html header 見て charset 探したほうが良いかも？
+                body = await response.text()
+    except aiohttp.ClientError as e:
         logger.debug('http error: %s', e)
         raise exceptions.TaskFailure('http error: {!r}'.format(e))
 
@@ -51,7 +52,7 @@ async def fetch_page(session, site):
 
     # save Last-Modified for If-Modified-Since
     page = models.Page(
-        site=site, url=response.url, body=body, ctime=datetime.now())
+        site=site, url=str(response.url), body=body, ctime=datetime.now())
     session.add(page)
 
     return page

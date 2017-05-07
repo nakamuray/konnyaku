@@ -248,5 +248,6 @@ def oneshot(ctx, name, url, css_selector, header):
 
     session.rollback()
 
+
 if __name__ == '__main__':
     cli()
