@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='konnyaku',
-    version='0.0.1',
+    version='0.0.2',
     description='websites update checker',
     author='NAKAMURA Yoshitaka',
     author_email='arumakanoy@gmail.com',
