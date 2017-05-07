@@ -43,17 +43,22 @@ async def fetch_page(session, site):
     # XXX: encoding 判定
     #body = body.decode('utf-8')
 
-    # XXX: これだと、 page 数分全部リストに持ってるっぽいし、
-    #      取得履歴が増えていった時に破滅しそう。
-    if site.pages:
+    try:
         last_page = site.pages[-1]
-        if last_page.url == response.url and body == site.pages[-1].body:
+    except IndexError:
+        pass
+    else:
+        if last_page.url == response.url and last_page.body == body:
             return None
 
     # save Last-Modified for If-Modified-Since
     page = models.Page(
         site=site, url=str(response.url), body=body, ctime=datetime.now())
     session.add(page)
+
+    # delete old pages, preserving latest 10 pages
+    for old_page in site.pages[:-10]:
+        session.delete(old_page)
 
     return page
 
