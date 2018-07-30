@@ -1,0 +1,34 @@
+---
+app-id: org.u7fa9.konnyaku
+branch: master
+
+runtime: org.freedesktop.Platform
+runtime-version: 1.6
+sdk: org.freedesktop.Sdk
+
+command: konnyaku
+
+finish-args:
+  - "--share=network"
+
+build-options:
+  build-args:
+    # for pip to download dependencies, allow build envs to access network
+    - "--share=network"
+
+modules:
+  - name: konnyaku
+    buildsystem: simple
+    build-commands:
+      - "python3.5 -m venv /app"
+      - "/app/bin/pip install -U pip wheel"
+      # XXX: first create wheel, and then install the wheel, to avoid pkg_resources from being imported by entrypoint script
+      #       (importing pkg_resources is slow)
+      - "/app/bin/pip wheel -w /var/tmp/wheel --no-deps ."
+      - "/app/bin/pip install -f /var/tmp/wheel konnyaku"
+    sources:
+      - type: git
+        path: "."
+
+cleanup-commands:
+  - "/app/bin/pip uninstall -y pip wheel"
